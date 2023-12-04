@@ -40,86 +40,12 @@ class TransferTransaction : AggregateState<UUID, TransferTransactionAggregate> {
         )
     }
 
-    fun processParticipantAccept(bankAccountId: UUID): Event<TransferTransactionAggregate> {
-        if (transactionState > HALF_CONFIRMED) return NoopEvent(transferId)
-
-        when (bankAccountId) {
-            sourceParticipant.bankAccountId -> {
-                if (destinationParticipant.state != ACCEPTED) {
-                    return TransferParticipantAcceptedEvent(transferId, sourceParticipant.bankAccountId)
-                }
-            }
-            destinationParticipant.bankAccountId -> {
-                if (sourceParticipant.state != ACCEPTED) {
-                    return TransferParticipantAcceptedEvent(transferId, destinationParticipant.bankAccountId)
-                }
-            }
-            else -> throw IllegalStateException("Transaction $transferId. No such participant bank account: $bankAccountId")
-        }
-        return TransactionConfirmedEvent(
-            transferId,
-            sourceParticipant.accountId,
-            sourceParticipant.bankAccountId,
-            destinationParticipant.accountId,
-            destinationParticipant.bankAccountId
-        )
-    }
-
-    fun processParticipantDecline(bankAccountId: UUID): Event<TransferTransactionAggregate> {
-        if (transactionState > HALF_CONFIRMED) return NoopEvent(transferId)
-
-        when (bankAccountId) {
-            sourceParticipant.bankAccountId -> Unit
-            destinationParticipant.bankAccountId -> Unit
-            else -> throw IllegalStateException("Transaction $transferId. No such participant bank account: $bankAccountId")
-        }
-
-        return TransactionNotConfirmedEvent(
-            transferId,
-            sourceParticipant.accountId,
-            sourceParticipant.bankAccountId,
-            destinationParticipant.accountId,
-            destinationParticipant.bankAccountId
-        )
-    }
-
-    fun participantCommitted(bankAccountId: UUID): Event<TransferTransactionAggregate> {
+    fun finishTransaction(): Event<TransferTransactionAggregate> {
         // todo sukhoa check that status is CONFIRMED
-        when (bankAccountId) {
-            sourceParticipant.bankAccountId -> {
-                if (destinationParticipant.state != COMMITTED) {
-                    return TransferParticipantCommittedEvent(transferId, bankAccountId)
-                }
-            }
-            destinationParticipant.bankAccountId -> {
-                if (sourceParticipant.state != COMMITTED) {
-                    return TransferParticipantCommittedEvent(transferId, bankAccountId)
-                }
-            }
-            else -> throw IllegalStateException("Transaction $transferId. No such participant bank account: $bankAccountId")
-        }
-
         return TransactionSucceededEvent(transferId)
     }
 
-    fun participantRollbacked(bankAccountId: UUID): Event<TransferTransactionAggregate> {
-        // todo sukhoa check that status is NOT_CONFIRMED
-        when (bankAccountId) {
-            sourceParticipant.bankAccountId -> {
-                if (destinationParticipant.state != ROLLBACKED) {
-                    return TransferParticipantRollbackedEvent(transferId, bankAccountId)
-                }
-            }
-            destinationParticipant.bankAccountId -> {
-                if (sourceParticipant.state != ROLLBACKED) {
-                    return TransferParticipantRollbackedEvent(transferId, bankAccountId)
-                }
-            }
-            else -> {
-                throw IllegalStateException("Transaction $transferId. No such participant bank account: $bankAccountId")
-            }
-        }
-
+    fun cancelTransaction(): Event<TransferTransactionAggregate> {
         return TransactionFailedEvent(transferId)
     }
 
@@ -129,57 +55,6 @@ class TransferTransaction : AggregateState<UUID, TransferTransactionAggregate> {
         this.sourceParticipant = Participant(event.sourceAccountId, event.sourceBankAccountId)
         this.destinationParticipant = Participant(event.destinationAccountId, event.destinationBankAccountId)
         this.transferAmount = event.transferAmount
-    }
-
-    @StateTransitionFunc
-    fun participantAccepted(event: TransferParticipantAcceptedEvent) {
-        transactionState = HALF_CONFIRMED
-        when (event.participantBankAccountId) {
-            sourceParticipant.bankAccountId -> {
-                sourceParticipant.acceptTransaction()
-            }
-            destinationParticipant.bankAccountId -> {
-                destinationParticipant.acceptTransaction()
-            }
-        }
-    }
-
-    @StateTransitionFunc
-    fun participantCommitted(event: TransferParticipantCommittedEvent) {
-        transactionState = HALF_CONFIRMED
-        when (event.participantBankAccountId) {
-            sourceParticipant.bankAccountId -> {
-                sourceParticipant.commitTransaction()
-            }
-            destinationParticipant.bankAccountId -> {
-                destinationParticipant.commitTransaction()
-            }
-        }
-    }
-
-    @StateTransitionFunc
-    fun participantCommitted(event: TransferParticipantRollbackedEvent) {
-        transactionState = HALF_CONFIRMED
-        when (event.participantBankAccountId) {
-            sourceParticipant.bankAccountId -> {
-                sourceParticipant.rollbackTransaction()
-            }
-            destinationParticipant.bankAccountId -> {
-                destinationParticipant.rollbackTransaction()
-            }
-        }
-    }
-
-    @StateTransitionFunc
-    fun participantDeclined(event: TransactionNotConfirmedEvent) {
-        transactionState = NOT_CONFIRMED
-    }
-
-    @StateTransitionFunc
-    fun confirmed(event: TransactionConfirmedEvent) {
-        transactionState = CONFIRMED
-        sourceParticipant.acceptTransaction()
-        destinationParticipant.acceptTransaction()
     }
 
     @StateTransitionFunc

@@ -11,11 +11,8 @@ const val BANK_ACCOUNT_DEPOSIT = "BANK_ACCOUNT_DEPOSIT_EVENT"
 const val BANK_ACCOUNT_WITHDRAWAL = "BANK_ACCOUNT_WITHDRAWAL_EVENT"
 const val INTERNAL_ACCOUNT_TRANSFER = "INTERNAL_ACCOUNT_TRANSFER_EVENT"
 
-const val TRANSFER_TRANSACTION_ACCEPTED = "TRANSFER_TRANSACTION_ACCEPTED"
-const val TRANSFER_TRANSACTION_DECLINED = "TRANSFER_TRANSACTION_DECLINED"
-const val TRANSFER_TRANSACTION_PROCESSED = "TRANSFER_TRANSACTION_PROCESSED"
-const val TRANSFER_TRANSACTION_ROLLBACKED = "TRANSFER_TRANSACTION_ROLLBACKED"
-
+const val TRANSFER_TRANSACTION_ACCEPTED_PROCESSED = "TRANSFER_TRANSACTION_ACCEPTED_PROCESSED"
+const val TRANSFER_TRANSACTION_DECLINED_ROLLBACKED = "TRANSFER_TRANSACTION_DECLINED_ROLLBACKED"
 
 @DomainEvent(name = ACCOUNT_CREATED)
 data class AccountCreatedEvent(
@@ -61,41 +58,23 @@ data class InternalAccountTransferEvent(
     name = INTERNAL_ACCOUNT_TRANSFER,
 )
 
-@DomainEvent(name = TRANSFER_TRANSACTION_ACCEPTED)
-data class TransferTransactionAcceptedEvent(
+@DomainEvent(name = TRANSFER_TRANSACTION_ACCEPTED_PROCESSED)
+data class TransferTransactionAcceptedProcessedEvent(
     val accountId: UUID,
     val bankAccountId: UUID,
     val transactionId: UUID,
     val transferAmount: BigDecimal,
     val isDeposit: Boolean
 ) : Event<AccountAggregate>(
-    name = TRANSFER_TRANSACTION_ACCEPTED,
+    name = TRANSFER_TRANSACTION_ACCEPTED_PROCESSED,
 )
 
-@DomainEvent(name = TRANSFER_TRANSACTION_DECLINED)
-data class TransferTransactionDeclinedEvent(
+@DomainEvent(name = TRANSFER_TRANSACTION_DECLINED_ROLLBACKED)
+data class TransferTransactionDeclinedRollBackedEvent(
     val accountId: UUID,
     val bankAccountId: UUID,
     val transactionId: UUID,
     val reason: String
 ) : Event<AccountAggregate>(
-    name = TRANSFER_TRANSACTION_DECLINED,
-)
-
-@DomainEvent(name = TRANSFER_TRANSACTION_PROCESSED)
-data class TransferTransactionProcessedEvent(
-    val accountId: UUID,
-    val bankAccountId: UUID,
-    val transactionId: UUID,
-) : Event<AccountAggregate>(
-    name = TRANSFER_TRANSACTION_PROCESSED,
-)
-
-@DomainEvent(name = TRANSFER_TRANSACTION_ROLLBACKED)
-data class TransferTransactionRollbackedEvent(
-    val accountId: UUID,
-    val bankAccountId: UUID,
-    val transactionId: UUID,
-) : Event<AccountAggregate>(
-    name = TRANSFER_TRANSACTION_ROLLBACKED,
+    name = TRANSFER_TRANSACTION_DECLINED_ROLLBACKED,
 )

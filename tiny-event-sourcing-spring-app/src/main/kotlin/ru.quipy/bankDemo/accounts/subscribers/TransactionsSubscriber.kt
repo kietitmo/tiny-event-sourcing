@@ -32,7 +32,7 @@ class TransactionsSubscriber(
                     .sagaContext
 
                 val transactionOutcome1 = accountEsService.update(event.sourceAccountId, sagaContext) { // todo sukhoa idempotence!
-                    it.performTransferFrom(
+                    it.performFromAndProcess(
                         event.sourceBankAccountId,
                         event.transferId,
                         event.transferAmount
@@ -40,7 +40,7 @@ class TransactionsSubscriber(
                 }
 
                 val transactionOutcome2 = accountEsService.update(event.destinationAccountId, sagaContext) { // todo sukhoa idempotence!
-                    it.performTransferTo(
+                    it.performToAndProcess(
                         event.destinationBankAccountId,
                         event.transferId,
                         event.transferAmount
@@ -48,44 +48,6 @@ class TransactionsSubscriber(
                 }
 
                 logger.info("Transaction: ${event.transferId}. Outcomes: $transactionOutcome1, $transactionOutcome2")
-            }
-
-            `when`(TransactionConfirmedEvent::class) { event ->
-                logger.info("Got transaction confirmed event: $event")
-
-                val sagaContext = sagaManager
-                    .withContextGiven(event.sagaContext)
-                    .performSagaStep(bankSagaName, "process transfer")
-                    .sagaContext
-
-                val transactionOutcome1 = accountEsService.update(event.sourceAccountId, sagaContext) { // todo sukhoa idempotence!
-                    it.processPendingTransaction(event.sourceBankAccountId, event.transferId)
-                }
-
-                val transactionOutcome2 = accountEsService.update(event.destinationAccountId, sagaContext) { // todo sukhoa idempotence!
-                    it.processPendingTransaction(event.destinationBankAccountId, event.transferId)
-                }
-
-                logger.info("Transaction: ${event.transferId}. Outcomes: $transactionOutcome1, $transactionOutcome2")
-            }
-
-            `when`(TransactionNotConfirmedEvent::class) { event ->
-                logger.info("Got transaction not confirmed event: $event")
-
-                val sagaContext = sagaManager
-                    .withContextGiven(event.sagaContext)
-                    .performSagaStep(bankSagaName, "rollback transfer")
-                    .sagaContext
-
-                val transactionOutcome1 = accountEsService.update(event.sourceAccountId, sagaContext) { // todo sukhoa idempotence!
-                    it.rollbackPendingTransaction(event.sourceBankAccountId, event.transferId)
-                }
-
-                val transactionOutcome2 = accountEsService.update(event.destinationAccountId, sagaContext) { // todo sukhoa idempotence!
-                    it.rollbackPendingTransaction(event.destinationBankAccountId, event.transferId)
-                }
-
-                logger.info("Transaction: ${event.transferId}. Rollbacks: $transactionOutcome1, $transactionOutcome2")
             }
         }
     }
